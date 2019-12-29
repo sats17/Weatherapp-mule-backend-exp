@@ -8,14 +8,14 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
-    <flow name="AuthenticationFlow">
+    <sub-flow name="AuthenticationFlow">
         <set-variable variableName="authToken" value="#[message.inboundProperties.authToken]" doc:name="Variable"/>
         <scripting:component doc:name="Groovy">
             <scripting:script engine="Groovy"><![CDATA[if(flowVars['authToken'] != '${api_key}'){
 	throw new com.mule.exceptions.AuthenticationException("Invalid Api Key");
 }]]></scripting:script>
         </scripting:component>
-    </flow>
+    </sub-flow>
     <flow name="WeatherController">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/weather" allowedMethods="GET" doc:name="HTTP"/>
         <flow-ref name="AuthenticationFlow" doc:name="Flow Reference"/>
@@ -29,5 +29,16 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
         <exception-strategy ref="globalChoice_Exception_Strategy" doc:name="Reference Exception Strategy"/>
 
+    </flow>
+    <flow name="HumdityController">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/weather/humidity" allowedMethods="GET" doc:name="HTTP"/>
+        <flow-ref name="AuthenticationFlow" doc:name="Api Key Authentication"/>
+        <http:request config-ref="ProcessLayerRequest" path="/weather/humidity" method="GET" doc:name="HTTP">
+            <http:request-builder>
+                <http:query-param paramName="city" value="#[message.inboundProperties.'http.query.params'.city]"/>
+                <http:query-param paramName="date" value="#[message.inboundProperties.'http.query.params'.date]"/>
+            </http:request-builder>
+        </http:request>
+        <exception-strategy ref="globalChoice_Exception_Strategy" doc:name="Reference Exception Strategy"/>
     </flow>
 </mule>
